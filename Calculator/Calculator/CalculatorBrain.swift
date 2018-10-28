@@ -10,15 +10,54 @@ import Foundation
 
 struct CalculatorBrain {
     
-    private var accumulator: Double?
-    private var accumulatorString: String? // todo tuple
-    
     private enum Operation {
         case constant(Double)
         case nullaryOperation(() -> Double, () -> String)
         case unaryOperation((Double) -> Double, (String) -> String)
         case binaryOperation((Double,Double) -> Double, (String,String) -> String)
         case equals
+    }
+    
+    private struct PendingBinaryOperation {
+        let function: (Double,Double) -> Double
+        let firstOperand: Double
+        
+        let descriptionFunction: (String, String) -> String
+        let descriptionOperand: String
+        
+        func perform(with secondOperand: Double) -> Double {
+            return function(firstOperand, secondOperand)
+        }
+        
+        func buildDescription(with secondOperand: String) -> String {
+            return descriptionFunction(descriptionOperand, secondOperand)
+        }
+    }
+    
+    private var accumulator: Double?
+    private var accumulatorString: String?
+    private var pendingBinaryOperation: PendingBinaryOperation?
+    
+    var result: Double? {
+        get {
+            return accumulator
+        }
+    }
+    
+    var resultIsPending: Bool {
+        get {
+            return pendingBinaryOperation != nil
+        }
+    }
+    
+    var description: String? {
+        get {
+            if pendingBinaryOperation != nil {
+                return pendingBinaryOperation!.descriptionFunction(pendingBinaryOperation!.descriptionOperand, accumulatorString ?? "")
+            } else {
+                return accumulatorString
+            }
+        }
     }
 
     private var operations: Dictionary<String,Operation> = [
@@ -74,24 +113,6 @@ struct CalculatorBrain {
         }
     }
     
-    private var pendingBinaryOperation: PendingBinaryOperation?
-    
-    private struct PendingBinaryOperation {
-        let function: (Double,Double) -> Double
-        let firstOperand: Double
- 
-        let descriptionFunction: (String, String) -> String
-        let descriptionOperand: String
-        
-        func perform(with secondOperand: Double) -> Double {
-            return function(firstOperand, secondOperand)
-        }
-        
-        func buildDescription(with secondOperand: String) -> String {
-            return descriptionFunction(descriptionOperand, secondOperand)
-        }
-    }
-    
     mutating func setOperand(_ operand: Double) {
         accumulator = operand
 
@@ -100,27 +121,5 @@ struct CalculatorBrain {
         numberFormatter.usesGroupingSeparator = false
         numberFormatter.maximumFractionDigits = Constants.numberOfDigitsAfterDecimalPoint
         accumulatorString = numberFormatter.string(from: NSNumber(value: operand))
-    }
-    
-    var result: Double? {
-        get {
-            return accumulator
-        }
-    }
-    
-    var resultIsPending: Bool {
-        get {
-            return pendingBinaryOperation != nil
-        }
-    }
-    
-    var description: String? {
-        get {
-            if pendingBinaryOperation != nil {
-                return pendingBinaryOperation!.descriptionFunction(pendingBinaryOperation!.descriptionOperand, accumulatorString ?? "")
-            } else {
-                return accumulatorString
-            }
-        }
     }
 }
